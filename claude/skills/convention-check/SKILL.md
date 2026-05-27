@@ -16,7 +16,7 @@ Audits code changes against the team's five Dart coding conventions and produces
 ### Step 1 — Identify the base branch
 
 - If the user provided a base branch or PR number, use it.
-- Otherwise ask: *"Branch gốc là gì? (ví dụ: `develop-202606`)"*
+- Otherwise ask: *"What is the base branch? (e.g., main, develop)"*
 
 ### Step 2 — Get the full diff
 

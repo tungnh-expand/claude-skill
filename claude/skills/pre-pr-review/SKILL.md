@@ -17,7 +17,7 @@ description: Unified pre-PR quality gate. Orchestrates commit-check + convention
 ## Step 1 — Get the diff
 
 Ask the user:
-> "Branch gốc là gì? (branch mà bạn tạo branch này từ đó — ví dụ: `develop-202606`)"
+> "What is the base branch? (e.g., `main`, `develop`)"
 
 Then run:
 
