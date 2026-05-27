@@ -1,0 +1,1 @@
+Read `.claude/skills/convention-check/SKILL.md` in full, then follow the workflow exactly as defined there.

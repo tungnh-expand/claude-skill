@@ -1,0 +1,1 @@
+Read `.claude/skills/commit-check/SKILL.md` in full, then follow the workflow exactly as defined there.

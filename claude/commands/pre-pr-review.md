@@ -1,0 +1,1 @@
+Read `.claude/skills/commit-check/SKILL.md`, `.claude/skills/convention-check/SKILL.md`, and `.claude/skills/pre-pr-review/SKILL.md` in full, then follow the orchestration workflow defined in `pre-pr-review/SKILL.md` exactly.
