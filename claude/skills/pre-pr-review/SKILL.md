@@ -19,7 +19,7 @@ description: Unified pre-PR quality gate. Orchestrates commit-check + convention
 ## Step 1 — Determine the base branch
 
 If the user did not specify a target branch, ask:
-> "このブランチの派生元ブランチは何ですか？（例: develop-20260511）"
+> "このブランチの派生元ブランチは何ですか？（例: develop）"
 
 Then get the commit list:
 ```bash
