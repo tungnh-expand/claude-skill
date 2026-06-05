@@ -1,6 +1,6 @@
 ---
 name: pre-pr-review
-description: Unified pre-PR quality gate. Orchestrates commit-check + convention-check + Flutter verification and saves a Markdown report. Trigger on "pre-pr-review", "/pre-pr-review", "review trước PR", "chạy pre-pr-review".
+description: Unified pre-PR quality gate. Orchestrates commit-check + convention-check + Flutter verification and saves a Markdown report. Trigger on "pre-pr-review", "/pre-pr-review", "review trước PR", "chạy pre-pr-review", "PR前チェック", "PR前レビュー".
 ---
 
 # Pre-PR Review (Flutter / mobile ttp)
@@ -12,28 +12,21 @@ description: Unified pre-PR quality gate. Orchestrates commit-check + convention
 
 **Never generate the report from memory.**
 
+**IMPORTANT — no AI attribution:** The review report MUST NOT mention AI, Claude, an LLM, or automated generation in any form. Do NOT add lines such as "Generated with Claude", co-authored-by trailers, or any tool credit. The report MUST read as if written by a human reviewer.
+
 ---
 
-## Step 1 — Get the diff
+## Step 1 — Determine the base branch
 
-Ask the user:
-> "What is the base branch? (e.g., `main`, `develop`)"
+If the user did not specify a target branch, ask:
+> "このブランチの派生元ブランチは何ですか？（例: develop）"
 
-Then run:
-
+Then get the commit list:
 ```bash
-# List changed files
-git diff $(git merge-base HEAD <base-branch>) --name-only
-
-# Full diff for convention check
-git diff $(git merge-base HEAD <base-branch>)
-
-# Commit messages since branching
-git log $(git merge-base HEAD <base-branch>)..HEAD --pretty=format:"%H %s"
-
-# Full body for each commit
-git log -1 --pretty=format:"%B" <hash>
+git log $(git merge-base HEAD <target-branch>)..HEAD --oneline
 ```
+
+Show the commit list to the user before proceeding.
 
 **If a PR number is given instead:**
 ```bash
@@ -43,19 +36,33 @@ git diff <merge-commit>^1 <merge-commit>
 
 ---
 
-## Step 2 — Run commit-check
+## Step 2 — Get the full diff
 
-Apply **Rule 1** from `.claude/skills/commit-check/SKILL.md` to all commits retrieved in Step 1.
+```bash
+git diff $(git merge-base HEAD <target-branch>)...HEAD
+```
 
-Collect all findings.
+Only flag lines starting with `+` (additions/modifications). Context lines and `-` removals are out of scope.
+
+Get the file list too:
+```bash
+git diff $(git merge-base HEAD <target-branch>)...HEAD --name-only
+```
 
 ---
 
-## Step 3 — Run convention-check
+## Step 3 — Run convention checks
 
-Apply **Rules 2–6** from `.claude/skills/convention-check/SKILL.md` to all changed files retrieved in Step 1.
+Apply **Rule 1** from `.claude/skills/commit-check/SKILL.md` to all commits.
 
-Skip generated files as defined in that skill. Collect all findings.
+Apply **Rules 2–6** from `.claude/skills/convention-check/SKILL.md` to all changed files. Skip generated files as defined in that skill.
+
+Check all rules simultaneously against the diff. For each violation record:
+- File path and line number
+- The offending snippet (one line)
+- A concrete fix suggestion (not "rename this" — say exactly what to change)
+
+**Only flag lines the diff adds or modifies.** If a nearby unchanged line is egregious and the author could reasonably fix it in the same PR, mention it in 検討.
 
 ---
 
@@ -75,7 +82,13 @@ If `flutter test` has prerequisites or takes too long, note it and skip — docu
 
 ---
 
-## Step 5 — Save report
+## Step 5 — Produce the report
+
+Output the report in **two sections: Japanese first, then Vietnamese**. See the report format below.
+
+---
+
+## Step 6 — Save the result
 
 Get the current branch name and sanitize it for use as a filename (replace `/` with `-`):
 
@@ -88,7 +101,7 @@ Filename: `PR_<sanitized-branch-name>_pre-pr-review_<yyyyMMdd>.md`
 
 Example: `PR_feature-TTP_VN-1417_pre-pr-review_20260527.md`
 
-Save to: `.claude/output/`
+Save the full report (both JP and VN sections) to `.claude/output/`:
 
 ```bash
 mkdir -p .claude/output
@@ -96,80 +109,106 @@ mkdir -p .claude/output
 
 ---
 
-## Report template
+## Priority levels
+
+- **要修正 / Cần sửa** — clear, unambiguous violations: wrong casing, prohibited abbreviation, dead code, WHAT comment, malformed commit message, missing required documentation, test convention violation
+- **検討 / Xem xét** — judgment calls: borderline abbreviations (`auth`, `config`), names that may be valid given domain knowledge, optional documentation candidates
+
+When in doubt, prefer 検討 over 要修正. The author knows the codebase.
+
+---
+
+## Report format
+
+### Japanese version
 
 ```markdown
-# Pre-PR Review Report
+# コードレビュー結果
 
-| Item | Value |
-|---|---|
-| Branch | `<current branch>` |
-| Base branch | `<base branch>` |
-| Author | `<git user.name>` |
-| Repository | mobile ttp |
-| Date | `<YYYY-MM-DD HH:MM>` |
-| Model | claude-sonnet-4-6 |
+**ブランチ:** `<branch>` → `<target-branch>`  
+**対象:** <N> commits, <N> files  
+**判定:** 要修正 <N>件 / 検討 <N>件
 
----
+| 優先度 | 件数 |
+| ------ | ---- |
+| 要修正 | N    |
+| 検討   | N    |
 
-## Convention Check
+## 要修正
 
-### Commit messages (Rule 1)
+- [ ] **`<file>:<line>`** — [<カテゴリ>]
+  - <説明と修正方法>
+- [ ] **`commit <hash>`** — [コミット]
+  - <説明と修正提案>
 
-<Findings from commit-check, or "✓ All commits follow Conventional Commits.">
+## 検討
 
-### Code (Rules 2–6)
+- [ ] **`<file>:<line>`** — [<カテゴリ>]
+  - <説明>
 
-#### 要修正 (Must fix)
+## 問題なし
 
-- [ ] **`<file path>:<line>`** — Rule <N> (<rule name>). `<snippet>` → `<fix>`.
+- <ルール名>: OK
 
-#### 検討 (Consider)
+## 検証
 
-- [ ] **`<file path>:<line>`** — Rule <N> (<rule name>). `<snippet>` — <explanation>.
-
-#### ✓ Clean rules
-
-<Rules with no violations.>
-
----
-
-## Flutter Verification
-
-### flutter analyze
-
-**Result:** ✓ Pass / ✗ Fail
-
-<If fail: paste the error output.>
-
-### flutter test
-
-**Result:** ✓ Pass / ✗ Fail / ⚠️ Skipped (<reason>)
-
-<If fail: paste the relevant error output.>
-
-### flutter build ios --simulator
-
-**Result:** ✓ Pass / ✗ Fail
-
-<If fail: paste the error output.>
-
----
-
-## Summary
-
-| Category | Count |
-|---|---|
-| 要修正 (Must fix) | N |
-| 検討 (Consider) | N |
-| flutter analyze | ✓ / ✗ |
-| flutter test | ✓ / ✗ / ⚠️ |
-| flutter build | ✓ / ✗ |
-
-**Gate status:** ✅ Ready to PR / ❌ Fix required before PR
-
-<If ❌: one-line summary of what needs to be resolved.>
+- [ ] flutter analyze → OK / NG / 未実行
+- [ ] flutter test → OK / NG / 未実行 (<理由>)
+- [ ] flutter build ios --simulator → OK / NG / 未実行
 ```
+
+カテゴリ: `命名` `コメント` `略語` `識別子` `コミット` `テスト` `ドキュメント`
+
+---
+
+### Vietnamese version
+
+```markdown
+# Kết quả review code
+
+**Nhánh:** `<branch>` → `<target-branch>`  
+**Phạm vi:** <N> commits, <N> files  
+**Kết luận:** Cần sửa <N> mục / Xem xét <N> mục
+
+| Ưu tiên | Số mục |
+| ------- | ------ |
+| Cần sửa | N      |
+| Xem xét | N      |
+
+## Cần sửa
+
+- [ ] **`<file>:<line>`** — [<category>]
+  - <Mô tả và cách sửa>
+- [ ] **`commit <hash>`** — [Commit]
+  - <Mô tả và đề xuất sửa>
+
+## Xem xét
+
+- [ ] **`<file>:<line>`** — [<category>]
+  - <Mô tả>
+
+## Không có vấn đề
+
+- <rule name>: OK
+
+## Kiểm tra
+
+- [ ] flutter analyze → OK / NG / Chưa chạy
+- [ ] flutter test → OK / NG / Chưa chạy (<lý do>)
+- [ ] flutter build ios --simulator → OK / NG / Chưa chạy
+```
+
+Category labels: `Naming` `Comments` `Abbreviation` `Identifier` `Commit` `Test` `Documentation`
+
+---
+
+## What to avoid
+
+- **Don't nitpick unchanged code.** Only review what the diff adds or modifies.
+- **Don't add unlisted rules.** No line-length, import-order, or style preferences beyond the defined rules.
+- **Don't be dogmatic on judgment calls.** Use 検討 for borderline cases.
+- **Don't restate the rule list.** Focus on findings — a short category label is enough.
+- **Don't mention AI, Claude, or automation** anywhere in the report output.
 
 ---
 
@@ -178,4 +217,4 @@ mkdir -p .claude/output
 Do not create a PR if any of the following are true:
 - Any `要修正` item is unchecked
 - `flutter analyze` fails
-- `flutter build` fails
+- `flutter build ios --simulator` fails
