@@ -49,9 +49,7 @@ A trailing `!` (e.g. `feat!:`) or a `BREAKING CHANGE:` footer marks a breaking c
 **Subject line must:**
 - Always include the ticket code (e.g., `TTP_VN-1417`) immediately before the description.
 - Start the description (after the ticket code) with a lowercase letter.
-- Be under ~72 characters in total length (including the ticket code).
 - Use imperative mood ("add X", not "added X" or "adds X").
-- Not end with a period.
 
 **Examples:**
 
@@ -66,7 +64,7 @@ A trailing `!` (e.g. `feat!:`) or a `BREAKING CHANGE:` footer marks a breaking c
 
 Two levels — consistent with the full `pre-pr-review` report:
 
-- **要修正 (Must fix)** — missing type, wrong casing, past/present-third-person tense, empty subject, subject > 72 chars, ends with period.
+- **要修正 (Must fix)** — missing type, wrong casing, past/present-third-person tense, empty subject.
 - **検討 (Consider)** — no scope when one is obvious, vague subject that can be improved, missing body for a complex change.
 
 ## Output format
