@@ -6,8 +6,8 @@ description: Unified pre-PR quality gate. Orchestrates commit-check + convention
 # Pre-PR Review (Flutter / mobile ttp)
 
 **MANDATORY: Before doing anything, read these three files in full:**
-1. `.claude/skills/commit-check/SKILL.md` — commit message rules (Rule 1)
-2. `.claude/skills/convention-check/SKILL.md` — Dart code convention rules (Rules 2–6)
+1. `.claude/skills/commit-check/SKILL.md` — commit message rules
+2. `.claude/skills/convention-check/SKILL.md` — Dart code convention rules (Rules 1–5)
 3. This file — orchestration workflow and report template
 
 **Never generate the report from memory.**
@@ -39,23 +39,23 @@ git diff <merge-commit>^1 <merge-commit>
 ## Step 2 — Get the full diff
 
 ```bash
-git diff $(git merge-base HEAD <target-branch>)...HEAD
+git diff $(git merge-base HEAD <target-branch>)
 ```
 
 Only flag lines starting with `+` (additions/modifications). Context lines and `-` removals are out of scope.
 
 Get the file list too:
 ```bash
-git diff $(git merge-base HEAD <target-branch>)...HEAD --name-only
+git diff $(git merge-base HEAD <target-branch>) --name-only
 ```
 
 ---
 
 ## Step 3 — Run convention checks
 
-Apply **Rule 1** from `.claude/skills/commit-check/SKILL.md` to all commits.
+Apply the **commit-check rules** from `.claude/skills/commit-check/SKILL.md` to all commits.
 
-Apply **Rules 2–6** from `.claude/skills/convention-check/SKILL.md` to all changed files. Skip generated files as defined in that skill.
+Apply the **convention-check rules** (Rules 1–5) from `.claude/skills/convention-check/SKILL.md` to all changed files. Skip generated files as defined in that skill.
 
 Check all rules simultaneously against the diff. For each violation record:
 - File path and line number
@@ -111,7 +111,7 @@ mkdir -p .claude/output
 
 ## Priority levels
 
-- **要修正 / Cần sửa** — clear, unambiguous violations: wrong casing, prohibited abbreviation, dead code, WHAT comment, malformed commit message, missing required documentation, test convention violation
+- **要修正 / Cần sửa** — clear, unambiguous violations: wrong casing, prohibited abbreviation, dead code, WHAT comment, malformed commit message, missing required documentation
 - **検討 / Xem xét** — judgment calls: borderline abbreviations (`auth`, `config`), names that may be valid given domain knowledge, optional documentation candidates
 
 When in doubt, prefer 検討 over 要修正. The author knows the codebase.
@@ -198,7 +198,7 @@ When in doubt, prefer 検討 over 要修正. The author knows the codebase.
 - [ ] flutter build ios --simulator → OK / NG / Chưa chạy
 ```
 
-Category labels: `Naming` `Comments` `Abbreviation` `Identifier` `Commit` `Test` `Documentation`
+Category labels: `Đặt tên` `Comment` `Viết tắt` `Định danh` `Commit` `Tài liệu`
 
 ---
 

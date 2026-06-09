@@ -141,26 +141,66 @@ APNs, ref (Riverpod Ref/WidgetRef only)
 
 ### Rule 5 — Document public APIs with clear comments
 
-> **Scope: app code vs library code**
-> This rule applies primarily to **shared/reusable code**: services, repositories, utilities, custom widgets used across features, and any code in `lib/core/` or `lib/shared/`. For feature-specific screens and widgets that are not reused, apply this rule with a lighter touch — only flag if the API is genuinely non-obvious.
+**Scope**
 
-Every qualifying **public** declaration must have a `///` dartdoc comment covering: what it does, parameters, return value, side effects/exceptions.
+| Zone | Directories | Treatment |
+|---|---|---|
+| Shared | `lib/services/`, `lib/utils/`, `lib/extensions/`, `lib/widgets/`, `lib/core/`, `lib/foundation/`, `lib/providers/`, `lib/navigator/`, `lib/config/`, `lib/constants/`, `lib/event_bus/`, `lib/ttp/` | Full rule applies |
+| Feature | `lib/screens/` | Lighter touch — only flag if genuinely non-obvious |
 
-Use `///` (not `//` and not `/** */`). Reference other symbols with `[SymbolName]`.
+**Format:** Use `///` (not `//`, not `/** */`). Reference symbols with `[SymbolName]`.
 
-**Flag undocumented:**
-- Public classes, mixins, extensions, enums, typedefs in `core/`, `shared/`, or utility files.
-- Public methods with non-obvious behavior.
-- Public top-level functions, getters, constants with non-obvious purpose.
-- Doc comments that just restate the name — `/// Gets the user.` on `getUser()` adds nothing.
+**Step 1 — Always skip (never flag):**
+- Private members (leading `_`)
+- Test files (`test/**`, `*_test.dart`, `integration_test/**`)
+- Widget state classes (`_FooState`) and `*State` plain data holders (e.g., `LoginState`, `SettingState`)
+- Trivial overrides: `build`, `dispose`, `toString`, `==`, `hashCode`, `createState`
+- Generated files (`*.g.dart`, `*.freezed.dart`, etc.)
 
-**Don't flag:**
-- Private members (leading `_`).
-- Test files (`test/**`, `*_test.dart`, `integration_test/**`).
-- Widget state classes (`_FooState`).
-- Trivial overrides: `build`, `dispose`, `toString`, `==`, `hashCode`, `createState`.
-- Feature-specific screens/widgets that are self-explanatory.
-- Generated files.
+**Step 2 — Skip if method is obviously self-explanatory (all must be true):**
+- Body is ≤ 3 lines, no `async`/`await`
+- No dependency calls (`_repository`, `_service`, `_dio`, `_storage`, `http`, `SharedPreferences`, etc.)
+- No `try/catch`, no `throw`
+- Body is a simple field access or single delegation — regardless of return type
+
+```dart
+void clear() => _cache.clear();      // obvious — skip
+bool get isEmpty => _items.isEmpty;  // obvious — skip
+User get currentUser => _user;       // obvious — skip
+```
+
+If **any** signal is missing → not obvious → proceed to Step 3.
+
+**Step 3 — Flag:**
+
+| Severity | When |
+|---|---|
+| **要修正** | Public class / mixin / extension / enum / typedef in shared zone with no `///` |
+| **要修正** | Non-obvious public method in shared zone with no `///` |
+| **要修正** | Top-level Riverpod provider in `lib/providers/` with no `///` (providers inside `lib/screens/` → skip) |
+| **検討** | Non-obvious public method in `lib/screens/` with no `///` |
+| **検討** | Doc comment that just restates the name (`/// Gets the user.` on `getUser()`) |
+
+**Example:**
+
+```dart
+// 検討 — restates the name, no useful info
+/// Fetches the user.
+Future<User> fetchUser(String id) async { /* ... */ }
+
+// Good — behavior, edge cases, throws
+/// Fetches a [User] by [id] from the remote API.
+/// Throws [NotFoundException] if the user does not exist.
+/// Throws [NetworkException] on connectivity failure.
+Future<User> fetchUser(String id) async { /* ... */ }
+
+// Good — Riverpod provider in lib/providers/
+/// Provides the current authentication state.
+/// Automatically invalidated when the session token changes.
+final authStateProvider = StateNotifierProvider<AuthController, AuthState>(
+  (ref) => AuthController(ref),
+);
+```
 
 ---
 
@@ -170,8 +210,8 @@ Two levels — consistent with `pre-pr-review`:
 
 | Level | Examples |
 |---|---|
-| **要修正 (Must fix)** | Wrong casing, PascalCase file name, dead commented-out code, `HTTPClient`-style acronym, undocumented public utility |
-| **検討 (Consider)** | Borderline abbreviations (`auth`, `config`, `ctx`), names that could be improved, missing doc on a feature widget |
+| **要修正 (Must fix)** | Wrong casing, PascalCase file name, dead commented-out code, `HTTPClient`-style acronym, undocumented public class/service/utility in `lib/services/` or `lib/utils/` |
+| **検討 (Consider)** | Borderline abbreviations (`auth`, `config`, `ctx`), names that could be improved, missing doc on a screen-specific non-obvious method, doc comment that restates the name |
 
 When in doubt, prefer **検討** over **要修正**.
 
@@ -188,12 +228,12 @@ When in doubt, prefer **検討** over **要修正**.
 
 ## 要修正 (Must fix)
 
-- **`lib/features/auth/UserService.dart`** — Rule 1 (file naming). Rename to `user_service.dart`.
-- **`lib/features/auth/user_service.dart:12`** — Rule 1 (class naming). `class userService` → `class UserService`.
+- **`lib/services/AuthService.dart`** — Rule 1 (file naming). Rename to `auth_service.dart`.
+- **`lib/services/auth_service.dart:12`** — Rule 1 (class naming). `class authService` → `class AuthService`.
 
 ## 検討 (Consider)
 
-- **`lib/features/auth/user_service.dart:8`** — Rule 3 (meaningful names). `final data = await fetchProfile()` → `userProfile`.
+- **`lib/screens/login/login_controller.dart:8`** — Rule 3 (meaningful names). `final data = await fetchProfile()` → `userProfile`.
 
 ## ✓ Clean rules
 
